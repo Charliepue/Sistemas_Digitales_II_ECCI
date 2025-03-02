@@ -1,0 +1,30 @@
+from machine import Pin, Timer
+
+# Configuración del pin de salida (motor o LED)
+motor = Pin(15, Pin.OUT)  # GPIO2 como salida
+
+# Variables globales para el control del PWM simulado
+ciclo_trabajo = 50  # Ciclo de trabajo en porcentaje (50% por defecto)
+estado = False  # Estado del pin (ON/OFF)
+contador = 0  # Contador para el control del ciclo de trabajo
+
+def pwm_simulado(t):
+    """Función de interrupción del temporizador que simula una señal PWM."""
+    global estado, contador
+    contador += 1
+    
+    if contador < ciclo_trabajo:  
+        motor.value(1)  # Encender el motor (o LED)
+    else:
+        motor.value(0)  # Apagar el motor (o LED)
+    
+    if contador >= 100:  # Reiniciar el ciclo cada 100 interrupciones (10 ms * 100 = 1s)
+        contador = 0
+
+# Configuración del temporizador
+timer = Timer(0)  
+timer.init(mode=Timer.PERIODIC, period=10, callback=pwm_simulado)  # 10 ms → 50 Hz
+
+# Bucle infinito (Mantener el programa activo)
+while True:
+    pass
