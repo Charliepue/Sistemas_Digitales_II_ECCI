@@ -1,0 +1,28 @@
+import _thread
+import time
+from machine import Pin
+
+# Configuración de los LEDs
+led1 = Pin(14, Pin.OUT)  # GPIO2 - LED 1
+led2 = Pin(12, Pin.OUT)  # GPIO4 - LED 2
+
+def parpadear_led1():
+    """Parpadeo del LED1 cada 500 ms"""
+    while True:
+        led1.value(not led1.value())  # Cambia el estado del LED
+        time.sleep(0.5)
+
+def parpadear_led2():
+    """Parpadeo del LED2 cada 1 segundo"""
+    while True:
+        led2.value(not led2.value())  # Cambia el estado del LED
+        time.sleep(1)
+
+# Iniciar los hilos
+_thread.start_new_thread(parpadear_led1, ())
+_thread.start_new_thread(parpadear_led2, ())
+
+# Mantener el programa corriendo
+while True:
+    pass
+
