@@ -1,0 +1,33 @@
+import _thread
+import time
+from machine import Pin
+
+# Configuración del botón (GPIO 4) y su resistencia pull-up
+boton = Pin(2, Pin.IN, Pin.PULL_DOWN)
+
+# Variable compartida y bloqueo para evitar condiciones de carrera
+contador = 0
+lock = _thread.allocate_lock()
+
+def contar_tiempo():
+    """Hilo secundario que cuenta los segundos"""
+    global contador
+    while True:
+        with lock:  # Bloqueo para modificar la variable compartida
+            contador += 1
+        print(f"Tiempo transcurrido: {contador} s")
+        time.sleep(1)  # Espera de 1 segundo
+
+# Iniciar el hilo de conteo de tiempo
+_thread.start_new_thread(contar_tiempo, ())
+
+# Hilo principal monitorea el botón
+while True:
+    if boton.value() == 0:  # Si el botón se presiona (flanco descendente)
+        time.sleep_ms(50)  # Pequeño retardo para evitar rebote
+        if boton.value() == 0:  # Verificación nuevamente
+            with lock:  # Bloqueo para modificar la variable compartida
+                contador = 0  # Reiniciar contador
+            print("¡Contador reiniciado!")
+            while boton.value() == 0:
+                pass  # Esperar a que se suelte el botón (evita múltiples reinicios)
