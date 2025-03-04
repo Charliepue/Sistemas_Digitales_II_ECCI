@@ -1,30 +1,45 @@
-from machine import Pin, Timer
+from machine import Pin
+import time
 
-# Configuración del pin de salida (motor o LED)
-motor = Pin(15, Pin.OUT)  # GPIO2 como salida
+# Configuración del LED y del sensor
+led = Pin(15, Pin.OUT)  # GPIO2 para el LED
+sensor = Pin(2, Pin.IN, Pin.PULL_DOWN)  # GPIO4 para el sensor con resistencia pull-up
 
-# Variables globales para el control del PWM simulado
-ciclo_trabajo = 50  # Ciclo de trabajo en porcentaje (50% por defecto)
-estado = False  # Estado del pin (ON/OFF)
-contador = 0  # Contador para el control del ciclo de trabajo
+# Variables de estado
+alarma_activada = False
+led_encendido = False
 
-def pwm_simulado(t):
-    """Función de interrupción del temporizador que simula una señal PWM."""
-    global estado, contador
-    contador += 1
+def anti_rebote(pin):
+    """Función de interrupción con anti-rebote"""
+    global alarma_activada, led_encendido
+    time.sleep_ms(50)  # Pequeño retardo para evitar rebotes
     
-    if contador < ciclo_trabajo:  
-        motor.value(1)  # Encender el motor (o LED)
-    else:
-        motor.value(0)  # Apagar el motor (o LED)
-    
-    if contador >= 100:  # Reiniciar el ciclo cada 100 interrupciones (10 ms * 100 = 1s)
-        contador = 0
+    if pin.value() == 0:  # Verifica nuevamente el estado del pin
+        if not led_encendido:  # Si el LED estaba apagado
+            alarma_activada = True  # Inicia la secuencia de alarma
+        else:  # Si el LED estaba encendido, apagarlo
+            led.off()
+            led_encendido = False
 
-# Configuración del temporizador
-timer = Timer(0)  
-timer.init(mode=Timer.PERIODIC, period=10, callback=pwm_simulado)  # 10 ms → 50 Hz
+def alarma():
+    """Función para hacer parpadear el LED durante 5 segundos"""
+    global alarma_activada, led_encendido
+    if alarma_activada:
+        inicio = time.ticks_ms()
+        while time.ticks_diff(time.ticks_ms(), inicio) < 5000:
+            led.on()
+            time.sleep(0.1)
+            led.off()
+            time.sleep(0.1)
 
-# Bucle infinito (Mantener el programa activo)
+        led.on()  # Mantiene el LED encendido después del parpadeo
+        led_encendido = True
+        alarma_activada = False  # Desactiva la alarma
+
+# Configuración de la interrupción
+sensor.irq(trigger=Pin.IRQ_FALLING, handler=anti_rebote)
+
+# Bucle principal
 while True:
-    pass
+    alarma()
+    time.sleep(0.1)  # Pequeña espera para evitar uso excesivo de CPU
